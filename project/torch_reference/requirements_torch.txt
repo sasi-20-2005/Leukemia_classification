@@ -1,0 +1,15 @@
+# Reference PyTorch + PyTorch Geometric implementation (matches Proposal Section 20's
+# tool stack exactly). Install this only if you want to train the GPU/Colab version on
+# the real CuMiDa dataset -- the main project (../requirements.txt) does not need it.
+
+torch>=2.1
+torch_geometric>=2.4
+numpy>=1.24
+pandas>=1.5
+scikit-learn>=1.2
+networkx>=3.0
+matplotlib>=3.7
+
+# Install torch first from the CPU or CUDA wheel index appropriate for your machine, e.g.:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install torch_geometric

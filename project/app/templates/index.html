@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hybrid CapsNet + GNN — Leukemia Gene Expression Classifier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+<style>
+  :root{
+    --bg:#0B1220; --panel:#121B2E; --panel-2:#182238; --border:#26324B;
+    --text:#E7ECF3; --muted:#8CA0BA; --accent:#2CD9C5; --accent-dim:#1B7C72;
+    --accent2:#6C8CFF; --warn:#F2B84B; --danger:#F2617A; --good:#3ECF8E;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(44,217,197,0.10), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(108,140,255,0.08), transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:'Inter',sans-serif; min-height:100vh;}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif; margin:0;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .muted{color:var(--muted);}
+  header{padding:34px 40px 18px; border-bottom:1px solid var(--border);}
+  .eyebrow{font-family:'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase;
+    font-size:11.5px; color:var(--accent); margin-bottom:8px;}
+  header h1{font-size:26px; font-weight:700;}
+  header p{color:var(--muted); margin-top:6px; max-width:760px; line-height:1.5; font-size:14.5px;}
+  .wrap{max-width:1280px; margin:0 auto; padding:0 40px 60px;}
+  .grid{display:grid; grid-template-columns: 360px 1fr; gap:24px; margin-top:28px;}
+  @media (max-width:980px){ .grid{grid-template-columns:1fr;} }
+  .card{background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--border); border-radius:var(--radius); padding:22px;}
+  .card + .card{margin-top:20px;}
+  .card h3{font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:14px;}
+  label{display:block; font-size:13px; color:var(--muted); margin:14px 0 6px;}
+  input[type=number], select{
+    width:100%; background:#0E1626; border:1px solid var(--border); color:var(--text);
+    padding:9px 10px; border-radius:9px; font-family:'JetBrains Mono',monospace; font-size:13px;}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  .range-val{float:right; font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:12.5px;}
+  .tabbar{display:flex; gap:8px; margin-bottom:6px;}
+  .tabbtn{flex:1; padding:9px 0; text-align:center; border-radius:9px; cursor:pointer;
+    border:1px solid var(--border); color:var(--muted); font-size:13px; background:transparent;}
+  .tabbtn.active{background:rgba(44,217,197,0.12); color:var(--accent); border-color:var(--accent-dim);}
+  .file-drop{border:1.5px dashed var(--border); border-radius:10px; padding:16px; text-align:center;
+    color:var(--muted); font-size:12.5px; cursor:pointer;}
+  .file-drop:hover{border-color:var(--accent-dim); color:var(--accent);}
+  #csv-config{display:none;}
+  button.run{width:100%; margin-top:20px; padding:13px 0; border:none; border-radius:10px;
+    background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#04160F; font-weight:700;
+    font-size:14.5px; cursor:pointer; letter-spacing:.01em;}
+  button.run:disabled{opacity:.55; cursor:not-allowed;}
+  button.secondary{padding:10px 16px; border-radius:9px; border:1px solid var(--border); background:transparent;
+    color:var(--text); cursor:pointer; font-size:13px;}
+  button.secondary:hover{border-color:var(--accent-dim); color:var(--accent);}
+
+  /* Pipeline diagram */
+  .pipeline{display:flex; flex-direction:column; gap:10px;}
+  .stage-row{display:flex; align-items:center; gap:10px;}
+  .lane-label{width:92px; font-size:11px; color:var(--muted); text-align:right; flex-shrink:0;}
+  .stage{flex:1; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;}
+  .node{padding:9px 14px; border-radius:9px; border:1px solid var(--border); background:#0E1626;
+    font-size:12px; color:var(--muted); white-space:nowrap; transition:all .25s ease;}
+  .node.on{border-color:var(--accent); color:var(--accent); background:rgba(44,217,197,.10);
+    box-shadow:0 0 0 1px rgba(44,217,197,.25);}
+  .arrow{color:var(--border); font-size:15px;}
+  .lane-caps .node.on{border-color:var(--accent2); color:var(--accent2); background:rgba(108,140,255,.10);}
+  .fuse{text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); margin:2px 0;}
+
+  .status-line{display:flex; align-items:center; gap:10px; margin-top:16px; font-size:13px; color:var(--muted);}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--border);}
+  .dot.busy{background:var(--warn); animation:pulse 1s infinite;}
+  .dot.done{background:var(--good);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+  .metrics-row{display:grid; grid-template-columns:repeat(5,1fr); gap:14px;}
+  @media (max-width:760px){.metrics-row{grid-template-columns:repeat(2,1fr);}}
+  .metric{background:#0E1626; border:1px solid var(--border); border-radius:12px; padding:16px; text-align:center;}
+  .metric .val{font-family:'JetBrains Mono',monospace; font-size:23px; font-weight:600; color:var(--accent);}
+  .metric .lab{font-size:11px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.05em;}
+
+  .imgs-row{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:18px;}
+  @media (max-width:900px){.imgs-row{grid-template-columns:1fr;}}
+  .imgs-row figure{margin:0; background:#0E1626; border:1px solid var(--border); border-radius:12px; padding:10px;}
+  .imgs-row img{width:100%; border-radius:6px; display:block;}
+  .imgs-row figcaption{font-size:11.5px; color:var(--muted); text-align:center; margin-top:6px;}
+
+  canvas#curveChart{max-height:260px;}
+
+  .predict-card{display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;}
+  .predict-result{flex:1; min-width:260px;}
+  .predict-bars{flex:1.4; min-width:280px;}
+  .sample-badge{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted);}
+  .pred-class{font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:700; margin:6px 0 2px; color:var(--accent);}
+  .verdict{display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; margin-top:8px;}
+  .verdict.correct{background:rgba(62,207,142,.14); color:var(--good);}
+  .verdict.wrong{background:rgba(242,97,122,.14); color:var(--danger);}
+  .bar-row{display:flex; align-items:center; gap:10px; margin:7px 0; font-size:12.5px;}
+  .bar-row .name{width:96px; flex-shrink:0; color:var(--muted);}
+  .bar-track{flex:1; height:9px; background:#0E1626; border:1px solid var(--border); border-radius:6px; overflow:hidden;}
+  .bar-fill{height:100%; background:linear-gradient(90deg, var(--accent-dim), var(--accent));}
+  .bar-pct{width:48px; text-align:right; font-family:'JetBrains Mono',monospace; color:var(--text);}
+
+  .empty{color:var(--muted); font-size:13.5px; padding:30px 0; text-align:center;}
+  .error-box{background:rgba(242,97,122,.1); border:1px solid rgba(242,97,122,.4); color:#FFC9D3;
+    padding:12px 14px; border-radius:10px; font-size:13px; margin-top:14px;}
+  select#sampleSelect{width:auto; display:inline-block;}
+  .footer-note{margin-top:34px; color:var(--muted); font-size:12px; line-height:1.6;}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="brand" href="{{ url_for('home') }}" style="color:inherit;"><span class="dot"></span> Hybrid CapsNet + GNN</a>
+  <div class="nav-links">
+    <span class="username">{{ current_username }}</span>
+    <a class="btn-ghost" href="{{ url_for('logout') }}">Log out</a>
+  </div>
+</nav>
+
+<header>
+  <div class="eyebrow">Proposal · Hybrid Capsule Network + Graph Neural Network</div>
+  <h1>Multi-Class Leukemia Classification from Gene Expression Data</h1>
+  <p>Capsule Network (hierarchical gene features) + Graph Neural Network (gene-relationship
+     features) → fusion → softmax. Baseline comparison target: Optimized Dueling Double
+     Deep-Q-Network (DDDQ-N) on the CuMiDa Leukemia Gene Expression dataset.</p>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+
+    <!-- LEFT: CONFIG -->
+    <div>
+      <div class="card">
+        <h3>1 · Dataset</h3>
+        <div class="tabbar">
+          <div class="tabbtn active" id="tab-synthetic" onclick="selectSource('synthetic')">Synthetic Demo</div>
+          <div class="tabbtn" id="tab-upload" onclick="selectSource('upload')">Upload CSV</div>
+        </div>
+        <p class="muted" id="synthetic-note" style="font-size:12.5px;line-height:1.5;">
+          Generates a synthetic dataset shaped like CuMiDa's Leukemia set (5 classes:
+          AML, BM, BM_CD34, PB, PBSC_CD34) with injected class imbalance — useful for
+          exercising the full pipeline without needing to download the real dataset.
+        </p>
+        <div id="csv-config">
+          <div class="file-drop" onclick="document.getElementById('fileInput').click()">
+            <div id="drop-text">Click to choose a gene-expression CSV<br>(rows = samples, columns = genes + label)</div>
+          </div>
+          <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="handleFile(event)">
+          <label>Label column name</label>
+          <input type="text" id="labelCol" value="class">
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>2 · Preprocessing &amp; Model Config</h3>
+        <label>Genes to keep after feature reduction <span class="range-val" id="v-topk">128</span></label>
+        <input type="range" id="topk" min="32" max="512" step="16" value="128" oninput="syncVal('topk','v-topk')">
+        <label>Train / test split (test fraction) <span class="range-val" id="v-split">0.25</span></label>
+        <input type="range" id="split" min="0.1" max="0.4" step="0.05" value="0.25" oninput="syncVal('split','v-split')">
+        <label>Gene-graph correlation threshold <span class="range-val" id="v-corr">0.50</span></label>
+        <input type="range" id="corr" min="0.2" max="0.8" step="0.05" value="0.5" oninput="syncVal('corr','v-corr')">
+        <label>Training epochs <span class="range-val" id="v-epochs">25</span></label>
+        <input type="range" id="epochs" min="5" max="60" step="5" value="25" oninput="syncVal('epochs','v-epochs')">
+        <label>Batch size <span class="range-val" id="v-batch">8</span></label>
+        <input type="range" id="batch" min="4" max="32" step="4" value="8" oninput="syncVal('batch','v-batch')">
+
+        <button class="run" id="runBtn" onclick="runPipeline()">Run Pipeline</button>
+        <div class="status-line"><div class="dot" id="statusDot"></div><span id="statusText">Idle — configure and run.</span></div>
+        <div id="errorBox"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: DIAGRAM + RESULTS -->
+    <div>
+      <div class="card">
+        <h3>Architecture</h3>
+        <div class="pipeline">
+          <div class="stage-row"><div class="lane-label"></div>
+            <div class="stage">
+              <div class="node" id="n-input">Gene Expression Input</div><span class="arrow">→</span>
+              <div class="node" id="n-clean">Data Cleaning</div><span class="arrow">→</span>
+              <div class="node" id="n-norm">Normalization</div><span class="arrow">→</span>
+              <div class="node" id="n-smote">SMOTE</div><span class="arrow">→</span>
+              <div class="node" id="n-reduce">Feature Reduction</div>
+            </div>
+          </div>
+          <div class="stage-row"><div class="lane-label">capsule&nbsp;lane</div>
+            <div class="stage lane-caps"><div class="node" id="n-caps">Capsule Network (dynamic routing)</div></div>
+          </div>
+          <div class="stage-row"><div class="lane-label">graph&nbsp;lane</div>
+            <div class="stage"><div class="node" id="n-graph">Gene Graph</div><span class="arrow">→</span>
+              <div class="node" id="n-gnn">Graph Neural Network</div></div>
+          </div>
+          <div class="fuse">▼ hierarchical features ⊕ relational features ▼</div>
+          <div class="stage-row"><div class="lane-label"></div>
+            <div class="stage">
+              <div class="node" id="n-fuse">Feature Fusion</div><span class="arrow">→</span>
+              <div class="node" id="n-fc">Fully Connected</div><span class="arrow">→</span>
+              <div class="node" id="n-softmax">Softmax</div><span class="arrow">→</span>
+              <div class="node" id="n-out">Leukemia Class</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="resultsCard">
+        <h3>Results</h3>
+        <div id="resultsEmpty" class="empty">Run the pipeline to see accuracy, precision, recall,
+          F1, ROC-AUC, the confusion matrix, the learned gene graph, and the SMOTE class-balance effect.</div>
+        <div id="resultsBody" style="display:none;">
+          <div class="metrics-row">
+            <div class="metric"><div class="val" id="m-acc">–</div><div class="lab">Accuracy</div></div>
+            <div class="metric"><div class="val" id="m-prec">–</div><div class="lab">Precision</div></div>
+            <div class="metric"><div class="val" id="m-rec">–</div><div class="lab">Recall</div></div>
+            <div class="metric"><div class="val" id="m-f1">–</div><div class="lab">F1-Score</div></div>
+            <div class="metric"><div class="val" id="m-auc">–</div><div class="lab">ROC-AUC</div></div>
+          </div>
+
+          <div style="margin-top:20px;"><canvas id="curveChart"></canvas></div>
+
+          <div class="imgs-row">
+            <figure><img id="img-cm" src=""><figcaption>Confusion Matrix</figcaption></figure>
+            <figure><img id="img-graph" src=""><figcaption>Gene Relationship Graph</figcaption></figure>
+            <figure><img id="img-balance" src=""><figcaption>Class Balance — before / after SMOTE</figcaption></figure>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Predict a Sample</h3>
+        <div id="predictEmpty" class="empty">Train a model first, then predict individual held-out samples.</div>
+        <div id="predictBody" style="display:none;">
+          <div style="margin-bottom:14px;">
+            <button class="secondary" onclick="predictSample('random')">🎲 Random test sample</button>
+            <select id="sampleSelect" onchange="predictSample(this.value)" style="margin-left:10px;"></select>
+          </div>
+          <div class="predict-card">
+            <div class="predict-result">
+              <div class="sample-badge" id="p-sampleid">Sample ID: —</div>
+              <div class="pred-class" id="p-class">—</div>
+              <div class="muted mono" style="font-size:12px;">true class: <span id="p-true">—</span></div>
+              <div class="verdict" id="p-verdict"></div>
+            </div>
+            <div class="predict-bars" id="p-bars"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        Model: Hybrid Capsule Network + Graph Neural Network, implemented from scratch in NumPy
+        (see <span class="mono">src/hybrid_model.py</span>). A PyTorch + PyTorch Geometric
+        reference implementation matching the proposal's tool stack (Section 20) is provided in
+        <span class="mono">torch_reference/</span> for training on the real CuMiDa dataset.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let curveChart = null;
+let lastResult = null;
+
+function syncVal(id, out){ document.getElementById(out).innerText = document.getElementById(id).value; }
+
+function selectSource(which){
+  document.getElementById('tab-synthetic').classList.toggle('active', which==='synthetic');
+  document.getElementById('tab-upload').classList.toggle('active', which==='upload');
+  document.getElementById('csv-config').style.display = which==='upload' ? 'block' : 'none';
+  document.getElementById('synthetic-note').style.display = which==='synthetic' ? 'block' : 'none';
+  window.__source = which;
+}
+selectSource('synthetic');
+
+async function handleFile(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  const fd = new FormData(); fd.append('file', file);
+  document.getElementById('drop-text').innerText = 'Uploading ' + file.name + ' ...';
+  const res = await fetch('/api/upload', {method:'POST', body: fd});
+  const data = await res.json();
+  if(data.error){ document.getElementById('drop-text').innerText = 'Error: ' + data.error; return; }
+  document.getElementById('drop-text').innerText = file.name + ' — ' + data.columns.length + ' columns loaded ✓';
+}
+
+const stageSequence = ['n-input','n-clean','n-norm','n-smote','n-reduce','n-caps','n-graph','n-gnn','n-fuse','n-fc','n-softmax','n-out'];
+let stageTimer = null;
+function animateStages(){
+  let i = 0;
+  stageSequence.forEach(id => document.getElementById(id).classList.remove('on'));
+  stageTimer = setInterval(() => {
+    stageSequence.forEach(id => document.getElementById(id).classList.remove('on'));
+    document.getElementById(stageSequence[i % stageSequence.length]).classList.add('on');
+    i++;
+  }, 260);
+}
+function stopAnimateStages(){
+  clearInterval(stageTimer);
+  stageSequence.forEach(id => document.getElementById(id).classList.add('on'));
+}
+
+async function runPipeline(){
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  document.getElementById('statusDot').className = 'dot busy';
+  document.getElementById('statusText').innerText = 'Running preprocessing, training, evaluating…';
+  document.getElementById('errorBox').innerHTML = '';
+  animateStages();
+
+  const cfg = {
+    use_synthetic: window.__source !== 'upload',
+    label_col: document.getElementById('labelCol').value,
+    top_k_genes: parseInt(document.getElementById('topk').value),
+    test_size: parseFloat(document.getElementById('split').value),
+    correlation_threshold: parseFloat(document.getElementById('corr').value),
+    epochs: parseInt(document.getElementById('epochs').value),
+    batch_size: parseInt(document.getElementById('batch').value),
+    seed: 42
+  };
+
+  try{
+    const res = await fetch('/api/run', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(cfg)});
+    const data = await res.json();
+    stopAnimateStages();
+    if(data.error){
+      document.getElementById('errorBox').innerHTML = '<div class="error-box">'+data.error+'</div>';
+      document.getElementById('statusDot').className = 'dot';
+      document.getElementById('statusText').innerText = 'Failed.';
+      btn.disabled = false;
+      return;
+    }
+    lastResult = data;
+    renderResults(data);
+    setupPredictPanel(data);
+    document.getElementById('statusDot').className = 'dot done';
+    document.getElementById('statusText').innerText =
+      `Done — ${data.n_train} train / ${data.n_test} test samples, ${data.n_genes_selected} genes, ${data.graph_edges} graph edges.`;
+  }catch(e){
+    stopAnimateStages();
+    document.getElementById('errorBox').innerHTML = '<div class="error-box">Request failed: '+e+'</div>';
+    document.getElementById('statusDot').className = 'dot';
+  }
+  btn.disabled = false;
+}
+
+function pct(x){ return (x*100).toFixed(1) + '%'; }
+
+function renderResults(data){
+  document.getElementById('resultsEmpty').style.display = 'none';
+  document.getElementById('resultsBody').style.display = 'block';
+  document.getElementById('m-acc').innerText = pct(data.metrics.accuracy);
+  document.getElementById('m-prec').innerText = pct(data.metrics.precision_macro);
+  document.getElementById('m-rec').innerText = pct(data.metrics.recall_macro);
+  document.getElementById('m-f1').innerText = pct(data.metrics.f1_macro);
+  document.getElementById('m-auc').innerText = data.metrics.roc_auc_macro != null ? data.metrics.roc_auc_macro.toFixed(3) : 'n/a';
+
+  document.getElementById('img-cm').src = data.confusion_matrix_img;
+  document.getElementById('img-graph').src = data.gene_graph_img;
+  document.getElementById('img-balance').src = data.class_balance_img;
+
+  const ctx = document.getElementById('curveChart').getContext('2d');
+  if(curveChart) curveChart.destroy();
+  curveChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.training_curve.loss.map((_,i)=>i+1),
+      datasets: [
+        {label:'Train loss', data:data.training_curve.loss, borderColor:'#F2617A', yAxisID:'y', tension:.25, pointRadius:0},
+        {label:'Test accuracy', data:data.training_curve.test_accuracy, borderColor:'#2CD9C5', yAxisID:'y1', tension:.25, pointRadius:0}
+      ]
+    },
+    options: {
+      responsive:true,
+      scales:{
+        y:{position:'left', title:{display:true,text:'loss',color:'#8CA0BA'}, ticks:{color:'#8CA0BA'}, grid:{color:'#1E2A44'}},
+        y1:{position:'right', title:{display:true,text:'accuracy',color:'#8CA0BA'}, min:0, max:1, ticks:{color:'#8CA0BA'}, grid:{drawOnChartArea:false}},
+        x:{ticks:{color:'#8CA0BA'}, grid:{color:'#1E2A44'}}
+      },
+      plugins:{legend:{labels:{color:'#E7ECF3'}}}
+    }
+  });
+}
+
+function setupPredictPanel(data){
+  document.getElementById('predictEmpty').style.display = 'none';
+  document.getElementById('predictBody').style.display = 'block';
+  const sel = document.getElementById('sampleSelect');
+  sel.innerHTML = '';
+  for(let i=0;i<data.n_test;i++){
+    const opt = document.createElement('option');
+    opt.value = i; opt.text = 'Test sample S-' + String(i).padStart(3,'0');
+    sel.appendChild(opt);
+  }
+  predictSample('random');
+}
+
+async function predictSample(which){
+  const body = which === 'random' ? {} : {test_index: parseInt(which)};
+  const res = await fetch('/api/predict', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const data = await res.json();
+  if(data.error){ document.getElementById('errorBox').innerHTML = '<div class="error-box">'+data.error+'</div>'; return; }
+
+  document.getElementById('p-sampleid').innerText = 'Sample ID: ' + data.sample_id;
+  document.getElementById('p-class').innerText = data.predicted_class;
+  document.getElementById('p-true').innerText = data.true_class;
+  const verdict = document.getElementById('p-verdict');
+  verdict.innerText = data.correct ? '✓ correct' : '✗ misclassified';
+  verdict.className = 'verdict ' + (data.correct ? 'correct' : 'wrong');
+
+  const bars = document.getElementById('p-bars');
+  bars.innerHTML = '';
+  const entries = Object.entries(data.class_probabilities).sort((a,b)=>b[1]-a[1]);
+  entries.forEach(([name, p]) => {
+    const row = document.createElement('div'); row.className = 'bar-row';
+    row.innerHTML = `<div class="name">${name}</div><div class="bar-track"><div class="bar-fill" style="width:${(p*100).toFixed(1)}%"></div></div><div class="bar-pct">${(p*100).toFixed(1)}%</div>`;
+    bars.appendChild(row);
+  });
+
+  document.getElementById('sampleSelect').value = data.sample_id.replace('S-','').replace(/^0+/,'') || '0';
+}
+</script>
+</body>
+</html>

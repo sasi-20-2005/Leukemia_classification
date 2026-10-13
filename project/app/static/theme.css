@@ -1,0 +1,90 @@
+/* theme.css — shared design tokens for Home / Login / Register pages
+   (matches the dashboard's dark navy + teal "lab" theme in templates/index.html) */
+
+:root{
+  --bg:#0B1220; --panel:#121B2E; --panel-2:#182238; --border:#26324B;
+  --text:#E7ECF3; --muted:#8CA0BA; --accent:#2CD9C5; --accent-dim:#1B7C72;
+  --accent2:#6C8CFF; --warn:#F2B84B; --danger:#F2617A; --good:#3ECF8E;
+  --radius:14px;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh; color:var(--text); font-family:'Inter',sans-serif;
+  background:
+    radial-gradient(1200px 600px at 15% -10%, rgba(44,217,197,0.10), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(108,140,255,0.08), transparent 55%),
+    var(--bg);
+}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif; margin:0;}
+.mono{font-family:'JetBrains Mono',monospace;}
+.muted{color:var(--muted);}
+a{color:var(--accent); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* ---- top navbar ---- */
+.navbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 40px; border-bottom:1px solid var(--border);
+}
+.navbar .brand{display:flex; align-items:center; gap:10px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px;}
+.navbar .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent); box-shadow:0 0 10px var(--accent);}
+.navbar .nav-links{display:flex; align-items:center; gap:18px; font-size:13.5px;}
+.navbar .nav-links .username{color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:12.5px;}
+.navbar .btn-ghost{padding:8px 16px; border:1px solid var(--border); border-radius:9px; color:var(--text);}
+.navbar .btn-ghost:hover{border-color:var(--accent-dim); color:var(--accent); text-decoration:none;}
+.navbar .btn-accent{padding:8px 18px; border-radius:9px; background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#04160F; font-weight:700;}
+.navbar .btn-accent:hover{text-decoration:none; opacity:.92;}
+
+/* ---- eyebrow / header ---- */
+.eyebrow{font-family:'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase;
+  font-size:11.5px; color:var(--accent); margin-bottom:8px;}
+
+/* ---- generic card ---- */
+.card{background:linear-gradient(180deg, var(--panel), var(--panel-2));
+  border:1px solid var(--border); border-radius:var(--radius); padding:22px;}
+
+/* ---- buttons ---- */
+button.run, .btn-primary{
+  padding:13px 0; border:none; border-radius:10px; width:100%;
+  background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#04160F; font-weight:700;
+  font-size:14.5px; cursor:pointer; letter-spacing:.01em;
+}
+button.run:disabled{opacity:.55; cursor:not-allowed;}
+.btn-secondary{padding:10px 16px; border-radius:9px; border:1px solid var(--border); background:transparent;
+  color:var(--text); cursor:pointer; font-size:13px; display:inline-block;}
+.btn-secondary:hover{border-color:var(--accent-dim); color:var(--accent); text-decoration:none;}
+
+/* ---- form fields ---- */
+label{display:block; font-size:13px; color:var(--muted); margin:14px 0 6px;}
+input[type=text], input[type=email], input[type=password], select{
+  width:100%; background:#0E1626; border:1px solid var(--border); color:var(--text);
+  padding:11px 12px; border-radius:9px; font-family:'JetBrains Mono',monospace; font-size:13.5px;
+}
+input:focus, select:focus{outline:none; border-color:var(--accent-dim); box-shadow:0 0 0 3px rgba(44,217,197,.12);}
+
+/* ---- flash messages ---- */
+.flash{padding:12px 14px; border-radius:10px; font-size:13.5px; margin-bottom:16px;}
+.flash-error{background:rgba(242,97,122,.1); border:1px solid rgba(242,97,122,.4); color:#FFC9D3;}
+.flash-success{background:rgba(62,207,142,.1); border:1px solid rgba(62,207,142,.4); color:#BFF3DA;}
+
+/* ---- auth page layout ---- */
+.auth-wrap{min-height:calc(100vh - 70px); display:flex; align-items:center; justify-content:center; padding:40px 20px;}
+.auth-card{width:100%; max-width:420px;}
+.auth-card h1{font-size:22px; margin-bottom:6px;}
+.auth-card p.sub{color:var(--muted); font-size:13.5px; margin-bottom:22px;}
+.auth-footer{margin-top:20px; text-align:center; font-size:13px; color:var(--muted);}
+
+/* ---- home page ---- */
+.hero{padding:70px 40px 40px; max-width:920px;}
+.hero h1{font-size:34px; font-weight:700; line-height:1.25;}
+.hero p{color:var(--muted); font-size:15.5px; line-height:1.6; max-width:680px; margin-top:14px;}
+.hero-ctas{display:flex; gap:14px; margin-top:28px;}
+.hero-ctas .btn-primary{width:auto; padding:13px 26px;}
+
+.features{max-width:1200px; margin:20px auto 60px; padding:0 40px;
+  display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+@media (max-width:900px){.features{grid-template-columns:1fr;}}
+.features .card h3{font-size:15px; margin-bottom:8px; color:var(--text);}
+.features .card p{color:var(--muted); font-size:13.5px; line-height:1.6; margin:0;}
+.features .card .lane{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent);
+  text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; display:block;}

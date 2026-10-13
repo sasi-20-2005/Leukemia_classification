@@ -1,0 +1,7 @@
+# Core project (NumPy engine + Flask UI) — no PyTorch/TensorFlow required.
+numpy
+pandas
+scikit-learn
+networkx
+matplotlib
+flask

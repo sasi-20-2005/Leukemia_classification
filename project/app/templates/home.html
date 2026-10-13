@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hybrid CapsNet + GNN — Leukemia Classifier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="brand"><span class="dot"></span> Hybrid CapsNet + GNN</div>
+  <div class="nav-links">
+    {% if current_username %}
+      <span class="username">{{ current_username }}</span>
+      <a class="btn-ghost" href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a class="btn-ghost" href="{{ url_for('logout') }}">Log out</a>
+    {% else %}
+      <a class="btn-ghost" href="{{ url_for('login') }}">Log in</a>
+      <a class="btn-accent" href="{{ url_for('register') }}">Create account</a>
+    {% endif %}
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow">Proposal · Hybrid Capsule Network + Graph Neural Network</div>
+  <h1>Multi-Class Leukemia Classification from Gene Expression Data</h1>
+  <p>An interactive pipeline for the hybrid architecture: a Capsule Network learns
+     hierarchical gene-expression patterns while a Graph Neural Network models
+     gene-to-gene relationships. Both are fused and classified with a softmax layer —
+     benchmarked conceptually against the base paper's Optimized Dueling Double
+     Deep-Q-Network on the CuMiDa Leukemia Gene Expression dataset.</p>
+  <div class="hero-ctas">
+    {% if current_username %}
+      <a class="btn-primary" href="{{ url_for('dashboard') }}">Go to Dashboard →</a>
+    {% else %}
+      <a class="btn-primary" href="{{ url_for('register') }}">Create a free account →</a>
+      <a class="btn-secondary" href="{{ url_for('login') }}">I already have an account</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="features">
+  <div class="card">
+    <span class="lane">preprocessing</span>
+    <h3>Clean → Normalize → SMOTE</h3>
+    <p>Upload a real gene-expression CSV or use the built-in synthetic CuMiDa-like
+       dataset. Missing values, class imbalance, and dimensionality are all handled
+       automatically before training.</p>
+  </div>
+  <div class="card">
+    <span class="lane">model</span>
+    <h3>Capsule Network + GNN</h3>
+    <p>Watch the architecture diagram light up stage-by-stage as hierarchical capsule
+       features and relational gene-graph features are learned in parallel, then fused.</p>
+  </div>
+  <div class="card">
+    <span class="lane">evaluation</span>
+    <h3>Metrics &amp; Live Prediction</h3>
+    <p>Accuracy, precision, recall, F1, ROC-AUC, confusion matrix, and per-sample
+       predictions with class probabilities — right in the dashboard.</p>
+  </div>
+</div>
+
+</body>
+</html>

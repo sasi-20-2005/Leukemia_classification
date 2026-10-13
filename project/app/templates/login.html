@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — Hybrid CapsNet + GNN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="brand" href="{{ url_for('home') }}" style="color:inherit;"><span class="dot"></span> Hybrid CapsNet + GNN</a>
+  <div class="nav-links">
+    <span class="muted">New here?</span>
+    <a class="btn-accent" href="{{ url_for('register') }}">Create account</a>
+  </div>
+</nav>
+
+<div class="auth-wrap">
+  <div class="card auth-card">
+    <h1>Welcome back</h1>
+    <p class="sub">Log in to run the pipeline and view your results.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ 'error' if category == 'error' else 'success' }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+      <input type="hidden" name="next" value="{{ next or '' }}">
+      <label>Email</label>
+      <input type="email" name="email" required autofocus value="{{ email or '' }}" placeholder="you@example.com">
+      <label>Password</label>
+      <input type="password" name="password" required placeholder="••••••••">
+      <button class="btn-primary" type="submit" style="margin-top:22px;">Log in</button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="{{ url_for('register') }}">Create one</a>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
